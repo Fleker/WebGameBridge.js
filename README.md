@@ -8,6 +8,9 @@ _Currently Supported_
 * Leaderboards
 * Achievements
 
+There are a few additional features to make it easier for game developers
+* Snackbars/Toast notifications
+
 Anything else can be done with custom code from the developer reference. Since the user is authenticated, any additional request within the scope should work.
 
 ## Add To Your Project
@@ -37,3 +40,16 @@ The global variable `GPGLeaderboard` gives you simple access to leaderboard meth
 
 ### Achievements
 The global variable `GPGAchievements` gives you simple access to achievement methods.
+
+### Snackbars
+The global variable `Snackbar` is used to manage snackbars.
+#### Methods
+* `.makeToast(text, length)` - Displays text in a snackbar for a given number of milliseconds
+* `.isEnabled()` - Checks whether the developer has allowed snackbars for things like achievements and leaderboards
+* `LENGTH_SHORT` - 3000 milliseconds
+* `SNACKBAR_ENABLED` - Are snackbars for achievements and leaderboards enabled (defaults to `true`)
+
+#### Custom Style
+You can inject custom stylesheets into the body to enable custom snackbars UIs.
+The `.snackbar` class manages the style of a snackbar when it is hidden.
+The `.snackbar-on` class is added when the snackbar is to be shown. This class should transition the object into the desired location.
