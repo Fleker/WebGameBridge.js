@@ -10,6 +10,7 @@ _Currently Supported_
 
 There are a few additional features to make it easier for game developers
 * Snackbars/Toast notifications
+* Virtual Gamepad
 
 Anything else can be done with custom code from the developer reference. Since the user is authenticated, any additional request within the scope should work.
 
@@ -53,3 +54,22 @@ The global variable `Snackbar` is used to manage snackbars.
 You can inject custom stylesheets into the body to enable custom snackbars UIs.
 The `.snackbar` class manages the style of a snackbar when it is hidden.
 The `.snackbar-on` class is added when the snackbar is to be shown. This class should transition the object into the desired location.
+
+### Virtual Gamepad
+A virtual gamepad is a digital representation of a game controller. On a laptop or desktop computer, you may navigate characters using a keyboard. This isn't necessarily possible on a mobile device. These functions abstract out this system. A mobile phone can trigger an HTML DPAD and a laptop can trigger a mechanical DPAD and they're interpreted the same way. 
+
+Let's say you want to move down. On a laptop, it's as easy as pressing the down key.
+
+But let's make the game portable. You can check the viewport or user agent or just have an option for on-screen controls. There's a `div` or whatever and when pressed, this code is executed:
+
+`GamePad.pressKey(GamePad.KEYS.Down)`
+
+Where `GamePad` is a global variable containing relevant methods.
+
+`GamePad.releaseKey(GamePad.KEYS.Down)` is executed when the user lets go of the key. (Alternatively, the `GamePad.tapKey(GamePad.KEYS.Down)` will both press and release the key)
+
+Either way, you use a single method to check if that key is pressed:
+`GamePad.isDown(GamePad.KEYS.Down)`
+
+#### Custom Controls
+This is coming soon. Alternatively, you can just override the attributes in the GamePad.KEYS object.
