@@ -20,6 +20,8 @@ Add both this javascript file and the Google Client library to the bottom of the
     <script src="game_auth_lib.js"></script>
     <script src="https://apis.google.com/js/client.js?onload=handleClientLoad"></script>
     </body>
+    
+This library requires jQuery for the Virtual Gamepad to work. However, other parts will work without it.
 
 Then above that create a script tag with three variables:
 
