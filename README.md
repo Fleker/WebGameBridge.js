@@ -46,14 +46,17 @@ The global variable `GPGAchievements` gives you simple access to achievement met
 The global variable `Snackbar` is used to manage snackbars.
 #### Methods
 * `.makeToast(text, length)` - Displays text in a snackbar for a given number of milliseconds
+* `.makeRichToast(text, length)` - Displays a larger snackbar, with room for more HTML
 * `.isEnabled()` - Checks whether the developer has allowed snackbars for things like achievements and leaderboards
 * `LENGTH_SHORT` - 3000 milliseconds
+* `LENGTH_LONG` - 6000 milliseconds
 * `SNACKBAR_ENABLED` - Are snackbars for achievements and leaderboards enabled (defaults to `true`)
 
 #### Custom Style
 You can inject custom stylesheets into the body to enable custom snackbars UIs.
 The `.snackbar` class manages the style of a snackbar when it is hidden.
 The `.snackbar-on` class is added when the snackbar is to be shown. This class should transition the object into the desired location.
+The classes `.snackbar-text` and `.snackbar-rich` are added when the given type of snackbar is present
 
 ### Virtual Gamepad
 A virtual gamepad is a digital representation of a game controller. On a laptop or desktop computer, you may navigate characters using a keyboard. This isn't necessarily possible on a mobile device. These functions abstract out this system. A mobile phone can trigger an HTML DPAD and a laptop can trigger a mechanical DPAD and they're interpreted the same way. 
