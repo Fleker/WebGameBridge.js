@@ -99,3 +99,8 @@ Either way, you use a single method to check if that key is pressed:
 
 #### Custom Controls
 This is coming soon. Alternatively, you can just override the attributes in the GamePad.KEYS object.
+
+## GPG.JS on Android
+If you wish to compile your game in an Android app, follow this tutorial:
+
+* First, make sure you read https://developers.google.com/games/services/android/quickstart and the follow the instructions for creating an Android game
