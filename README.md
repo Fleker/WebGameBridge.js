@@ -1,16 +1,19 @@
 GooglePlayGames.js
 ==================
 
-A web based library for simple support for Google Play Games.
+A web based library for simple support for Google Play Games. It also acts as an interface to make native-like games on Android while programming a web game.
 
 _Currently Supported_
 * Authentication
 * Leaderboards
 * Achievements
 
-There are a few additional features to make it easier for game developers
+There are a few additional features to make it easier for game developers. These features are designed to be entirely optional and you don't have to touch any of it.
 * Snackbars/Toast notifications
 * Virtual Gamepad
+* Splash screens
+* Simple fullscreen menus
+* Elegant authorization/start screen
 
 Anything else can be done with custom code from the developer reference. Since the user is authenticated, any additional request within the scope should work.
 
@@ -29,6 +32,12 @@ Then above that create a script tag with three variables:
     var apiKey = 'yyy';
     var scopes = 'https://www.googleapis.com/auth/games https://www.googleapis.com/auth/plus.me';
     
+There are a few other parameters you can set:
+
+    var menus_array = {main: "mainMenu", pause: "pauseMenu", auth: "authMenu", game: undefined};
+    //In the format {menu_name, element_id}
+    var splashes = [];
+    
 The `clientId` and `apiKey` are determined from the Google Developer Console.
 
 To allow login, you will need to provide an authentication button. Use one like this (it will need that id):
@@ -36,6 +45,18 @@ To allow login, you will need to provide an authentication button. Use one like 
     <button id="authorize-button" style="visibility: hidden">Authorize</button
     
 After being connected, you can use the function `onConnected` to run the game after login is complete. You will also be able to use the library and make API calls. 
+    
+    //In this sample, I pass menus to the MenuManager, then I execute a custom function which sets up the main menu
+    function onConnected() { 
+        menus.setMenus(menus_array);
+        mainMenu();
+    }
+    
+    //If this function is called, the user is not authenticated. I show a splash start screen
+    function onNeedAuth() {
+        generateAuthSplash("authMenu", "http://img.wonderhowto.com/img/62/01/63528429515533/0/play-game-boy-advance-game-boy-color-games-your-ipad-iphone-no-jailbreaking.w654.jpg");
+        menus.open("auth");
+    }
 
 ## API
 ### Leaderboard
