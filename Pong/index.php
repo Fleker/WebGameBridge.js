@@ -3,7 +3,7 @@
 ?>
 <html>
 <head>
-    <script src="https://github.com/craftyjs/Crafty/releases/download/0.6.3-beta/crafty.js"></script>
+    <script src="https://github.com/craftyjs/Crafty/releases/download/0.6.3/crafty.js"></script>
 <!--    <script src="http://adodson.com/hello.js/dist/hello.all.js"></script>-->
     <style>
         @import url(http://fonts.googleapis.com/css?family=Roboto);
@@ -83,17 +83,17 @@ function startGame(multiplayer) {
     document.getElementById('mainMenu').style.display = "none";
     Crafty.init(window.innerWidth, window.innerHeight);
     Crafty.background('#eee');
-    
+    console.log('!!!3');
 //Walls
-Crafty.e("Wall1, Wall, 2D, DOM, Color").attr({x:0,y:0,h:window.innerHeight, w:1}).color('#000'); //  |
-Crafty.e("Wall2, Wall, 2D, DOM, Color").attr({x:window.innerWidth,y:0,h:window.innerHeight, w:1}).color('#000'); //   |
-Crafty.e("Wall3, Wall, 2D, DOM, Color").attr({x:0,y:0,h:1, w:window.innerWidth}).color('#000');// -
-Crafty.e("Wall4, Wall, 2D, DOM, Color").attr({x:0,y:window.innerHeight,h:1, w:window.innerWidth}).color('#000'); // _
-
+Crafty.e("Wall1, Wall, 2D, DOM, Color").attr({x:0,y:0,h:window.innerHeight, w:1}).color(0,0,0); //  |
+    console.log('!!!4');
+Crafty.e("Wall2, Wall, 2D, DOM, Color").attr({x:window.innerWidth,y:0,h:window.innerHeight, w:1}).color(0,0,0); //   |
+Crafty.e("Wall3, Wall, 2D, DOM, Color").attr({x:0,y:0,h:1, w:window.innerWidth}).color(0,0,0);// -
+Crafty.e("Wall4, Wall, 2D, DOM, Color").attr({x:0,y:window.innerHeight,h:1, w:window.innerWidth}).color(0,0,0); // _
 //Paddles
-var p1 = Crafty.e("Paddle, 2D, DOM, Color, Multiway, Object, Collision")
+p1 = Crafty.e("Paddle, 2D, DOM, Color, Multiway, Object, Collision")
     .color('rgb(255,0,0)')
-    .attr({ x: 20, y: window.innerHeight/2, w: 10, h: window.innerHeight/6, speed_mod: 1, paddleid:1, cpu: multiplayer})
+    .attr({ x: 20, y: window.innerHeight/2, w: 10, h: window.innerHeight/6, speed_mod: 1, paddleid:1, cpu: !multiplayer, difficulty: 210})
     .multiway(Math.round(window.innerHeight/60), { W: -90, S: 90 })
     .onHit('Wall3', function() {
         this.y = 0;
@@ -101,20 +101,38 @@ var p1 = Crafty.e("Paddle, 2D, DOM, Color, Multiway, Object, Collision")
     .onHit('Wall4', function() {
         this.y = window.innerHeight - this.h;
     })
+    .bind('keypress-up', function() {
+        this.y -= Math.round(window.innerHeight/60);
+    })
+    .bind('keypress-down', function() {
+        this.y += Math.round(window.innerHeight/60);
+    })
     .bind('EnterFrame', function() {
-       if(this.cpu) {
+        if(this.cpu) {
            var y = this.y;
            var cpu = this;
             Crafty("Ball").each(function() {
                 var h = this.y;
-                if(y > h)
-                    cpu.y -= window.innerHeight/120;
-                else
-                    cpu.y += window.innerHeight/120;
+                if(y > h && this.x < window.innerWidth/2)
+                    cpu.y -= window.innerHeight/cpu.difficulty/*-Crafty.math.randomInt(15,30)/cpu.difficulty*/;
+                else if(this.x < window.innerWidth/2)
+                    cpu.y += window.innerHeight/cpu.difficulty/*-Crafty.math.randomInt(15,30)/cpu.difficulty*/;
+                else {
+//                    cpu.y += Math.pow(-1,Crafty.math.randomInt(1,2))*window.innerHeight/cpu.difficulty/4;
+                    cpu.y += (this.y - cpu.y)/cpu.difficulty/2;
+                }
             })  
-       }
-    });
-var p2 = Crafty.e("Paddle, 2D, DOM, Color, Multiway, Object, Collision")
+        } else {
+            console.log('Entered: ', keyspressed);
+            if(keyspressed['87'] !== undefined)
+                this.trigger('keypress-up');
+            if(keyspressed['83'] !== undefined)
+                this.trigger('keypress-down'); 
+        }
+    })
+    .enableControl()
+
+p2 = Crafty.e("Paddle, 2D, DOM, Color, Multiway, Object, Collision")
     .color('rgb(0,255,0)')
     .attr({ x: window.innerWidth-40, y: window.innerHeight/2, w: 10, h: window.innerHeight/6, speed_mod: 1, paddleid:2 })
     .multiway(Math.round(window.innerHeight/60), { UP_ARROW: -90, DOWN_ARROW: 90 })
@@ -125,6 +143,19 @@ var p2 = Crafty.e("Paddle, 2D, DOM, Color, Multiway, Object, Collision")
     .onHit('Wall4', function() {
         this.y = window.innerHeight - this.h;
     })
+    .bind('keypress-up', function() {
+        this.y -= Math.round(window.innerHeight/60);
+    })
+    .bind('keypress-down', function() {
+        this.y += Math.round(window.innerHeight/60);
+    })
+    .bind('EnterFrame', function() {
+        if(keyspressed['38'] !== undefined)
+            this.trigger('keypress-up');
+        if(keyspressed['40'] !== undefined)
+            this.trigger('keypress-down');
+    })
+    .enableControl()
 
 if(!multiplayer)
     p1.disableControl();
@@ -135,13 +166,13 @@ if(!multiplayer)
 Crafty.e("2D, DOM, Color, Collision, Ball")
     .color('rgb(0,0,255)')
     .attr({ x: window.innerWidth/2, y: window.innerHeight/2, w: 10, h: 10,
-            dX: (-1)^(Crafty.math.randomInt(1,2))*Crafty.math.randomInt(2, 5),
+            dX: Math.pow(-1,(Crafty.math.randomInt(1,2)))*Crafty.math.randomInt(2, 5),
             dY: Crafty.math.randomInt(2, 5) })
     .bind('EnterFrame', function () {
         if (this.x > window.innerWidth-this.w) {
             Crafty.pause(true);
             this.x = window.innerWidth/2;
-            this.dX = (-1)^(Crafty.math.randomInt(1,2));
+            this.dX = Math.pow(-1,(Crafty.math.randomInt(1,2)))*Crafty.math.randomInt(2, 5);
             setTimeout("Crafty.pause(false)", 1000);
             Crafty("LeftPoints").each(function () {
                 this.text(++this.points + " ") });
@@ -149,7 +180,7 @@ Crafty.e("2D, DOM, Color, Collision, Ball")
         if (this.x < this.w) {
             Crafty.pause(true);
             this.x = window.innerWidth/2;
-            this.dX = (-1)^(Crafty.math.randomInt(1,2));
+            this.dX = Math.pow(-1,(Crafty.math.randomInt(1,2)))*Crafty.math.randomInt(2, 5);
             setTimeout("Crafty.pause(false)", 1000);
             Crafty("RightPoints").each(function () {
                 this.text(++this.points + " ") });
@@ -164,6 +195,9 @@ Crafty.e("2D, DOM, Color, Collision, Ball")
     .onHit('Wall', function() {
         this.dY *= -1;
     })
+p1.bind('EnterFrame', function() {
+       i
+    });
 
 //Score boards
 Crafty.e("LeftPoints, DOM, 2D, Text")
@@ -192,7 +226,7 @@ Crafty.e("RightPoints, DOM, 2D, Text")
     if(multiplayer) {
         whois_p1 = Crafty.e("2D, DOM, Text, Whois").attr({ x: 20, y: 60 }).text("P1 (User)").textFont({family:"Roboto", size:"24pt"});   
     } else {     
-        whois_p1 = Crafty.e("2D, DOM, Text, Whois").attr({ x: window.innerWidth-40, y: 60 }).text("CPU").textFont({family:"Roboto", size:"24pt"});   
+        whois_p1 = Crafty.e("2D, DOM, Text, Whois").attr({ x: 20, y: 60 }).text("CPU").textFont({family:"Roboto", size:"24pt"});   
     }
     whois_p2 = Crafty.e("2D, DOM, Text").attr({ x: window.innerWidth-160, y: 60 }).text("P2 (You)").textFont({family:"Roboto", size:"24pt"});    
     whois_countdown = Crafty.e("2D, DOM, Text, Countdown").attr({x: window.innerWidth/2-20, y: window.innerHeight/2 - 20}).text("3").textFont({family:"Roboto", size:"24pt"});
@@ -214,6 +248,14 @@ Crafty.e("RightPoints, DOM, 2D, Text")
     }, 3000);
         
     Snackbar.makeToast("Get "+MAX_POINTS+" Points to Win! Good Luck!");
+    
+    /*$('body').off().on('keypress', function(e) {
+        if(e.which == 119) {
+            p1.trigger('keypress-w');
+        } else if(e.which == 115) {
+            p1.trigger('keypress-s');
+        }
+    });*/
 }
 function gameWon(plyr) {
     endtime = new Date().getTime();
@@ -243,6 +285,7 @@ function gameWon(plyr) {
     document.getElementById('pauseMenu').style.display = "block";
 }
 </script>
+<script src='http://code.jquery.com/jquery-2.1.3.min.js'></script>
 <script src="game_auth_lib.js"></script>
 <script src="https://apis.google.com/js/client.js?onload=handleClientLoad"></script>
 </body>
