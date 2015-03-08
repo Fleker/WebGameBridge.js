@@ -14,6 +14,7 @@ There are a few additional features to make it easier for game developers. These
 * Splash screens
 * Simple fullscreen menus
 * Elegant authorization/start screen
+* Music & SFX players
 
 Anything else can be done with custom code from the developer reference. Since the user is authenticated, any additional request within the scope should work.
 
