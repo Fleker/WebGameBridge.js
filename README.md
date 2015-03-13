@@ -1,4 +1,4 @@
-GooglePlayGames.js
+WebGameBridge.js
 ==================
 
 A web based library for simple support for Google Play Games. It also acts as an interface to make native-like games on Android while programming a web game.
