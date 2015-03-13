@@ -15,12 +15,13 @@ document.body.innerHTML += "<div name='snackbar' class='snackbar snackbar-off'><
 //Default Snackbar Style
 document.head.innerHTML += "<style>.snackbar { z-index:100; transition-duration: 0.5s; position:fixed; top:101%; left:35%; width:30%; height:70px; border-radius:100px; background-color:#fff; color: #333; border:solid 1px black; text-align:center; padding:16px; } .snackbar-on { top: calc(95% - 100px); } .snackbar-rich { text-align:left; padding:0px; } .snackbar-text { height:20px; }</style>";
 document.head.innerHTML += "<style> .fullbleed { width:100%;height:100%;position:fixed;overflow:hidden;margin:0 }</style>";
+document.head.innerHTML += "<style> .virtual-key { display:none; }</style>";
 
 GPGJS = {
-    VERSION: "0.9.0.2",
-    BUILD: 2,
+    VERSION: "0.9.2.2",
+    BUILD: 5,
     AUTHOR: "Nick Felker @HandNF"
-}
+};
 console.info("Using GPG.JS version "+GPGJS.VERSION);
 
 //GETTERS
@@ -92,7 +93,7 @@ function generateAuthSplash(id, background) { //id of the div element to be used
     bg.style['-webkit-filter'] = 'blur(7px)';
     var b = document.createElement("button");
     b.innerHTML = "GOOGLE+ SIGN-IN";
-    b.id = "auth-splash-button"
+    b.id = "auth-splash-button";
     b.style.border = "solid 2px white";
     b.style.height = "100px";
     b.style.fontSize = "24pt";
@@ -167,11 +168,11 @@ function makeApiCall() {
 //LEADERBOARD
 var LeaderboardArray = {};
 function Leaderboard() {
-    this.iconUrl;
-    this.id;
-    this.isIconUrlDefault;
-    this.name;
-    this.order;
+    this.iconUrl = undefined;
+    this.id = undefined;
+    this.isIconUrlDefault = undefined;
+    this.name = undefined;
+    this.order = undefined;
     
     Leaderboard.prototype.setIconUrl = function(u) {
         this.iconUrl = u;
@@ -259,7 +260,7 @@ function LeaderboardRequest() {
         
         if(!ANDROID) { 
             gapi.client.request({
-              path: 'games/v1/players/me/leaderboards/'+leaderboard.getId()+'/scores/'+ranktype,
+              path: 'games/v1/leaderboards/'+leaderboard.getId()+'/scores/'+ranktype,
               params: {timeSpan: timespan},
               // You would add a body: {} argument if the method required a request body
               callback: function(response) {
@@ -344,14 +345,14 @@ function Achievement() {
         else 
             this.initialState = ACHIEVEMENTS.UNLOCKED;
         return this;
-    } 
+    }; 
     this.setAchievementType = function(a) {
         if(a == "STANDARD")
             this.achievementType = ACHIEVEMENTS.STANDARD;
         else
             this.achievementType = ACHIEVEMENTS.INCREMENTAL;
         return this;
-    }
+    };
     this.setExperiencePoints = function(p) { this.experiencePoints = p; return this;}
     
     this.getName = function() { return this.name; } 
@@ -568,6 +569,7 @@ function VirtualGamepad() {
         Up: new Key(38),
         Right: new Key(39),
         Down: new Key(40),
+        Back: new Key(27)
     };
     this.pressKey = function(key) {
         var e = $.Event('keydown');
@@ -592,7 +594,7 @@ function VirtualGamepad() {
         this.pressKey(key);
         setTimeout(function(vgp, k) { 
             vgp.releaseKey(k);
-        }, 100, this, key);
+        }, 1000/30, this, key); /* A frame */
     }
     this.keyspressed = {};
     this.keyhistory = [];
@@ -667,33 +669,57 @@ GamePad = new VirtualGamepad();
 
 $(document).on('keydown', function(e) {
     console.log(e);
-    GamePad.keyspressed[e.which+"_"+e.ctrl+"_"+e.shift+"_"+e.meta] = true;
+    if(e.ctrlKey !== undefined) //So there's two ways of doing this. I don't know why. It's stupid.
+        GamePad.keyspressed[e.which+"_"+e.ctrlKey+"_"+e.shiftKey+"_"+e.metaKey] = true;
+    else
+        GamePad.keyspressed[e.which+"_"+e.ctrl+"_"+e.shift+"_"+e.meta] = true;
     try {
         onKeyDown(e.which);   
     } catch(e) {
         
     }
+    
+    //Back key activates the Pause if ingame
+    if(GamePad.isDown(GamePad.KEYS.Back)) {
+        console.log("Back button pressed");
+        if(menus.current() == MENUS.GAME) { //Pause if ingame
+            menus.open(MENUS.PAUSE);
+        } else if(menus.current() == MENUS.PAUSE || menus.current() == MENUS.ACHIEVEMENTS || menus.current() == MENUS.LEADERBOARD) { //Go to main menu
+            menus.open(MENUS.MAIN);
+        } else if(menus.current() == MENUS.MAIN) { //Exit app if on Android
+            if(ANDROID)
+                Android.exit();
+        }
+    } else {
+        console.log("Button pressed is "+e.which+", not back");   
+    }
 //    return false;
 });
 $(document).on('keyup', function(e) {
-    delete GamePad.keyspressed[e.which+"_"+e.ctrl+"_"+e.shift+"_"+e.meta];
+    if(e.ctrlKey !== undefined) 
+        delete GamePad.keyspressed[e.which+"_"+e.ctrlKey+"_"+e.shiftKey+"_"+e.metaKey];
+    else
+        delete GamePad.keyspressed[e.which+"_"+e.ctrl+"_"+e.shift+"_"+e.meta];
     
-    GamePad.keyhistory.push(e.which+"_"+e.ctrl+"_"+e.shift+"_"+e.meta);
+    GamePad.keyhistory.push(e.which+"_"+e.ctrlKey+"_"+e.shiftKey+"_"+e.metaKey);
     if(GamePad.keyhistory.length > GamePad.HISTORY_LENGTH)
         GamePad.keyhistory.splice(0,1);
 });
 /** MENU APIS **/
-function Menu(name, id) {
+function Menu(name, id, event) {
     this.id = id;
     this.name = name;
+    this.onOpen = event || function() {};
     this.getId = function() {
         return this.id;   
     }
 }
-MENUS = {MAIN: "main", PAUSE: "pause", AUTH: "auth", GAME: "game", SPLASH: "splash"};
+MENUS = {MAIN: "main", PAUSE: "pause", AUTH: "auth", GAME: "game", SPLASH: "splash", ACHIEVEMENTS: "achievements", LEADERBOARD: "leaderboard"};
 function MenuManager() {
     this.menus = {};
     this.currMenu;
+    this.c = 0;
+    this.r = 0;
     this.setMenus = function(json) { //Provide a JSON of ids
         for(i in json) {
             this.menus[i] = new Menu(i, json[i]);   
@@ -703,6 +729,17 @@ function MenuManager() {
         return this.currMenu;
     }
     this.open = function(menu_name) {
+        if(menu_name == MENUS.ACHIEVEMENTS || menu_name == MENUS.LEADERBOARD) {
+            if(ANDROID && menu_name == MENUS.ACHIEVEMENTS) {
+                GPGAchievements.launchAndroid();
+                return;
+            } else if(ANDROID && menu_name == MENUS.LEADERBOARD) {
+                GPGLeaderboard.launchAndroid();
+                return;
+            }
+        }
+        
+        
         if(this.menus[menu_name] === undefined)
             return;
         
@@ -712,13 +749,23 @@ function MenuManager() {
                 document.getElementById(this.menus[i].getId()).style.display = "none";
         }   
 //        console.log(this.menus, menu_name);
-        if(this.menus[menu_name].getId() !== undefined)
+        if(this.menus[menu_name].getId() !== undefined) {
             document.getElementById(this.menus[menu_name].getId()).style.display = "block";
+        }
+        if(this.menus[menu_name].onOpen !== undefined)
+             this.menus[menu_name].onOpen();
+        
+        this.c = 0;
+        this.r = 0;
+        $('button[data-r="'+this.r+'"][data-c="'+this.c+'"]').focus();
         
         if(menu_name == MENUS.GAME)
             GamePad.showVirtualPad(false);
         else
             GamePad.hideVirtualPad();
+    }
+    this.getMenu = function(id) {
+        return this.menus[id];   
     }
 }
 menus = new MenuManager();
@@ -764,4 +811,154 @@ $(document).ready(function() {
     Splashes.previous = menus.current();
     Splashes.execute(0);
 });
+
+/** AUDIOPLAYER API **/
+function AudioManager() {
+    try {
+        this.audiocontext = window.AudioContext || window.webkitAudioContent;
+        this.context = new this.audiocontext();   
+        this.supported = true;
+    } catch(e) {
+        this.supported = false;   
+    }
+    console.log("WebAudio supported? "+this.supported);
+    this.sounds = {};
+    this.playing = [];
+    this.buffer = function(name, url, done) {
+        if(!this.isSupported())
+            return;
+        done = done || function() { };
+        var request = new XMLHttpRequest();
+        request.open('GET', url, true);
+        request.responseType = 'arraybuffer';
+        
+        //Decode
+        request.onload = function() {
+            AudioPlayer.context.decodeAudioData(request.response, function(buffer) {
+                AudioPlayer.sounds[name] = buffer;   
+                done();
+            });
+        }
+        request.send();
+    }
+    this.isSupported = function() {
+        return this.supported;
+    }
+    this.playSound = function(name, volume) {
+        if(!this.isSupported())
+            return;
+        volume = volume || 1;
+        var buffer = this.sounds[name];
+        var src = this.context.createBufferSource();
+        this.playing.push(src);
+        src.buffer = buffer;
+        src.connect(this.context.destination);
+        src.start(0);
+        var gain = this.context.createGain();
+        gain.connect(this.context.destination);
+        gain.gain.value = volume;
+    }
+    this.play = function(url) {
+        if(!this.isSupported())
+            return;
+        var title = "A"+Math.random();
+        this.buffer(title, url, function() { 
+            AudioPlayer.playSound(title);
+        });
+    }
+    //This will take in ALL soundss and make sure they're ready to go
+    this.preloadAll = function(sources) {
+        if(!this.isSupported())
+            return;
+        var finishedAll = function(list) {
+            for(i in list) {
+                var source = AudioPlayer.context.createBufferSource();
+                AudioPlayer.sounds[i+""] = list[i];   
+            }
+        }
+        var bufferLoader = new BufferLoader(this.context, list, finishedAll);
+        bufferLoader.load();
+    }
+    this.stopAllAudio = function() {
+        for(i in AudioPlayer.playing) {
+            var s = AudioPlayer.playing[i];   
+            if(s !== undefined) {
+                s.stop();
+            }
+        }
+        setTimeout(function() {
+            for(i in AudioPlayer.playing) {
+                var s = AudioPlayer.playing[i];   
+                if(s !== undefined)
+                    s.stop();
+            }
+        }, 50);//because loop music will play if just one is called
+    }
+}
+function MusicManager() {
+    this.context = AudioPlayer.context;
+    this.playlist = {};
+    this.source;
+    this.currenttime = 0;
+    this.setPrelude = function(url) {
+        if(!AudioPlayer.isSupported())
+            return;
+        AudioPlayer.buffer('MUSIC_PRELUDE', url);
+    }
+    this.setLoop = function(url) {
+        if(!AudioPlayer.isSupported())
+            return;
+        AudioPlayer.buffer('MUSIC_LOOP', url);   
+    }
+    this.initPlaylist = function(prelude, looper) {
+        if(!AudioPlayer.isSupported())
+            return;
+        this.setPrelude(prelude);
+        this.setLoop(looper);
+    }
+    //options {volume: 0-1}
+    this.startMusic = function(options) {
+        if(!AudioPlayer.isSupported())
+            return;
+        options = options || {volume: 1};
+        if(this.source !== undefined)
+            this.source.stop();
+        var volume = options.volume;
+        var buffer = AudioPlayer.sounds['MUSIC_PRELUDE'];
+        this.source = this.context.createBufferSource();
+        AudioPlayer.playing.push(this.source);
+        this.source.buffer = buffer;
+        this.source.connect(this.context.destination);
+        this.source.start(0);
+        var gain = this.context.createGain();
+        gain.connect(this.context.destination);
+        gain.gain.value = volume;
+        this.source.onended = function() {
+            var buffer = AudioPlayer.sounds['MUSIC_LOOP']; 
+            MusicPlayer.source = this.context.createBufferSource();
+            AudioPlayer.playing.push(MusicPlayer.source);
+            MusicPlayer.source.loop = true;
+            MusicPlayer.source.buffer = buffer;
+            MusicPlayer.source.connect(MusicPlayer.context.destination);
+            MusicPlayer.source.start(0);
+            var gain = MusicPlayer.context.createGain();
+            gain.connect(MusicPlayer.context.destination);
+            gain.gain.value = volume;
+        };
+    }
+    this.stopMusic = function() {
+        if(!AudioPlayer.isSupported())
+            return;
+/*        if(this.source !== undefined)
+            this.source.stop(); */     
+        for(i in AudioPlayer.playing) {
+            var s = AudioPlayer.playing[i];   
+            if(s!== undefined)
+                s.stop();
+        }
+    }
+}
+AudioPlayer = new AudioManager();
+MusicPlayer = new MusicManager();
+
 

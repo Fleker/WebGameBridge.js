@@ -1,0 +1,170 @@
+<?php
+    header('X-Frame-Options: GOFORIT'); 
+?>
+<html>
+<head>
+    <script src="https://github.com/craftyjs/Crafty/releases/download/0.6.3-beta/crafty.js"></script>
+    <script src="http://adodson.com/hello.js/dist/hello.all.js"></script>
+    <meta name="google-signin-clientid" content="38446245957-3d6r70i48c1hid0d7v4uerms6hhu4jma.apps.googleusercontent.com" />
+    <meta name="google-signin-cookiepolicy" content="single_host_origin" />
+    <meta name="google-signin-callback" content="signinCallback" />
+    <meta name="google-signin-scope" content="https://www.googleapis.com/auth/games" />
+    <style>
+        @import url(http://fonts.googleapis.com/css?family=Roboto);
+    </style>
+</head>
+<body style="width:100%;height:100%;position:fixed;overflow:hidden;margin:0">
+    <div id='mainMenu'>
+        <button onclick="startGame()">Local Multiplayer</button>
+<!--        <button onclick="hello('google').login();console.log('!');">G+</button>-->
+        <span id="signinButton">
+          <span
+            class="g-signin"
+            data-callback="signinCallback"
+            data-clientid="38446245957-3d6r70i48c1hid0d7v4uerms6hhu4jma.apps.googleusercontent.com"
+            data-cookiepolicy="single_host_origin"
+            data-requestvisibleactions="http://schema.org/AddAction"
+            data-scope="https://www.googleapis.com/auth/games">&#33;
+          </span>
+        </span>
+    </div>
+<script>
+    clientSecret = "AmRzgknOxrAl2sMzft5alVMv";
+    appId = "38446245957";
+    apiKey = "3d6r70i48c1hid0d7v4uerms6hhu4jma";
+    scopes = "https://www.googleapis.com/auth/games";
+    hello.init({ 
+        google   : "38446245957-3d6r70i48c1hid0d7v4uerms6hhu4jma.apps.googleusercontent.com"
+    },{redirect_uri:'redirect.php'});
+    hello.on('auth.login', function(auth){
+        console.log(auth);
+        // call user information, for the given network
+        hello( auth.network ).api( '/me' ).then( function(r){
+            // Inject it into the container
+            var label = document.getElementById( "profile_"+ auth.network );
+            if(!label){
+                label = document.createElement('div');
+                label.id = "profile_"+auth.network;
+                document.getElementById('profile').appendChild(label);
+            }
+            label.innerHTML = '<img src="'+ r.thumbnail +'" /> Hey '+r.name;
+        });
+    });
+function signinCallback(res) {
+    console.log(res);   
+}
+     function handleClientLoad() {
+        // Step 2: Reference the API key
+        gapi.client.setApiKey(apiKey);
+        window.setTimeout(checkAuth,1);
+      }
+
+      function checkAuth() {
+        gapi.auth.authorize({client_id: appId, scope: scopes, immediate: true}, handleAuthResult);
+      }
+
+      function handleAuthResult(authResult) {
+        var authorizeButton = document.getElementById('authorize-button');
+        if (authResult && !authResult.error) {
+          authorizeButton.style.visibility = 'hidden';
+          makeApiCall();
+        } else {
+          authorizeButton.style.visibility = '';
+          authorizeButton.onclick = handleAuthClick;
+        }
+      }
+
+      function handleAuthClick(event) {
+        // Step 3: get authorization to use private data
+        gapi.auth.authorize({client_id: appId, scope: scopes, immediate: false}, handleAuthResult);
+        return false;
+      }
+
+    
+    
+function startGame() {
+    document.getElementById('mainMenu').style.display = "none";
+    Crafty.init(window.innerWidth, window.innerHeight);
+    Crafty.background('rgb(200,200,200)');
+    //Paddles
+    Crafty.e("Paddle, 2D, DOM, Color, Multiway, Object")
+        .color('rgb(255,0,0)')
+        .attr({ x: 20, y: window.innerHeight/2, w: 10, h: window.innerHeight/6, speed_mod: 1, paddleid:1})
+        .multiway(Math.round(window.innerHeight/60), { W: -90, S: 90 })
+        .bind('KeyUp', function(e) {
+    //        console.log(e.key, this.y, Crafty.keys.W, Crafty.keys.DOWN_ARROW);
+            if(e.key == Crafty.keys.W && this.y < 0) {
+                this.y = 0; 
+            } else if(e.key == Crafty.keys.S && this.y > window.innerHeight - this.h) {
+                this.y = window.innerHeight - this.h;   
+            } else {
+                //this.speed(Math.round(window.innerHeight/60));   
+            }
+            //console.log(this.speed);
+            return false;
+});
+Crafty.e("Paddle, 2D, DOM, Color, Multiway, Object")
+    .color('rgb(0,255,0)')
+    .attr({ x: window.innerWidth-40, y: window.innerHeight/2, w: 10, h: window.innerHeight/6, speed_mod: 1, paddleid:2 })
+    .multiway(Math.round(window.innerHeight/60), { UP_ARROW: -90, DOWN_ARROW: 90 })
+    .enableControl()
+    .bind('KeyUp', function(e) {
+//        console.log(e.key, this.y, Crafty.keys.UP_ARROW, Crafty.keys.DOWN_ARROW);
+        if(e.key == Crafty.keys.UP_ARROW && this.y < 0) {
+            this.y = 0; 
+        } else if(e.key == Crafty.keys.DOWN_ARROW && this.y > window.innerHeight - this.h) {
+            this.y = window.innerHeight - this.h;   
+        } else {
+            //this.speed(Math.round(window.innerHeight/60));   
+        }
+        //console.log(this.speed);
+        return false;
+    });
+//Create stage objects
+//function - parameter is the stage name, which does crafty setup
+//Ball
+
+Crafty.e("2D, DOM, Color, Collision")
+    .color('rgb(0,0,255)')
+    .attr({ x: window.innerWidth/2, y: window.innerHeight/2, w: 10, h: 10,
+            dX: (-1)^(Crafty.math.randomInt(1,2))*Crafty.math.randomInt(2, 5),
+            dY: Crafty.math.randomInt(2, 5) })
+    .bind('EnterFrame', function () {
+        //hit floor or roof
+        if (this.y <= 0 || this.y >= window.innerHeight-this.h)
+            this.dY *= -1;
+
+        if (this.x > window.innerWidth-this.w) {
+            this.x = window.innerWidth/2;
+            this.dX *= (-1)^(Crafty.math.randomInt(1,2));
+            Crafty("LeftPoints").each(function () {
+                this.text(++this.points + " ") });
+        }
+        if (this.x < this.w) {
+            this.dX *= (-1)^(Crafty.math.randomInt(1,2));
+            this.x = window.innerWidth/2;
+            Crafty("RightPoints").each(function () {
+                this.text(++this.points + " ") });
+        }
+
+        this.x += this.dX;
+        this.y += this.dY;
+    })
+    .onHit('Object', function() {
+        this.dX *= -1;
+    })
+
+//Score boards
+Crafty.e("LeftPoints, DOM, 2D, Text")
+    .attr({ x: 20, y: 20, w: 100, h: 20, points: 0 })
+    .text("0 ")
+    .textFont({family:"Roboto, sans-serif", size:"16pt"});
+Crafty.e("RightPoints, DOM, 2D, Text")
+    .attr({ x: window.innerWidth-100, y: 20, w: 100, h: 20, points: 0 })
+    .text("0 ")
+    .textFont({family:"Roboto, sans-serif", size:"16pt"});   
+    }
+</script>
+    <script src="https://apis.google.com/js/client.js?onload=handleClientLoad"></script>
+</body>
+</html>

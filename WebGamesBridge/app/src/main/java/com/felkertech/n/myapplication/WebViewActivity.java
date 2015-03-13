@@ -1,16 +1,23 @@
 package com.felkertech.n.myapplication;
 
 import android.app.Activity;
+import android.app.UiModeManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
+import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.NonNull;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.SparseArray;
+import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.ConsoleMessage;
@@ -22,6 +29,8 @@ import android.webkit.WebViewClient;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
+import com.example.inputmanagercompat.InputManagerCompat;
+import com.felkertech.n.myapplication.Utils.MovementDirection;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
@@ -52,14 +61,13 @@ import java.util.Iterator;
  */
 //TODO Provide a function to disable touch controls if on ATV
 public class WebViewActivity extends Activity implements GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener {
+        GoogleApiClient.OnConnectionFailedListener, InputManagerCompat.InputDeviceListener {
     WebView body;
     BridgeClient client;
     String currentUrl;
     RelativeLayout frame;
 
     //GAME ATTRIBUTES
-
     private static final String TAG = "WebBridge::WVA";
 
     private static final String KEY_IN_RESOLUTION = "is_in_resolution";
@@ -97,8 +105,20 @@ public class WebViewActivity extends Activity implements GoogleApiClient.Connect
     private boolean mAutoStartSignInFlow = true;
 
     /**
+     * Input Devices Management
+     */
+    Dpad mDpad = new Dpad();
+    GamePad mGamePad = new GamePad();
+
+    /**
      * Called when the activity is starting. Restores the activity state.
      */
+    String url;
+    String[] APIs;
+    public void initialize(String url, String[] APIs) {
+        this.url = url;
+        this.APIs = APIs;
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -107,16 +127,20 @@ public class WebViewActivity extends Activity implements GoogleApiClient.Connect
         }
         //TODO You should make this a parameter
         if (mGoogleApiClient == null) {
-            mGoogleApiClient = new GoogleApiClient.Builder(this)
-                    .addApi(Games.API)
-                    .addApi(Plus.API)
-                    .addScope(Games.SCOPE_GAMES)
-                    .addScope(Plus.SCOPE_PLUS_LOGIN)
-                            // Optionally, add additional APIs and scopes if required.
-//                    .addApi(Drive.API).addScope(Drive.SCOPE_APPFOLDER) // Drive API
-                    .addConnectionCallbacks(this)
-                    .addOnConnectionFailedListener(this)
-                    .build();
+            GoogleApiClient.Builder bob = new GoogleApiClient.Builder(this);
+            for(String i: APIs) {
+                if(i.equals("Games")) {
+                    bob.addApi(Games.API)
+                        .addScope(Games.SCOPE_GAMES);
+                } else if(i.equals("Plus")) {
+                    bob.addApi(Plus.API)
+                        .addScope(Plus.SCOPE_PLUS_LOGIN);
+                }
+}               // Optionally, add additional APIs and scopes if required.
+                //.addApi(Drive.API).addScope(Drive.SCOPE_APPFOLDER) // Drive API
+                    bob.addConnectionCallbacks(this)
+                        .addOnConnectionFailedListener(this);
+            mGoogleApiClient = bob.build();
         }
         frame = new RelativeLayout(this);
         body = new WebView(this);
@@ -136,7 +160,7 @@ public class WebViewActivity extends Activity implements GoogleApiClient.Connect
         frame.addView(body);
         setContentView(frame);
         //FIXME In future builds this will be the only required function
-        body.loadUrl("http://felkerdigitalmedia.com/pong/retro.php?android=1");
+        body.loadUrl(url+"?android=1");
 
         final View decorView = getWindow().getDecorView();
         decorView.setOnSystemUiVisibilityChangeListener(
@@ -152,6 +176,7 @@ public class WebViewActivity extends Activity implements GoogleApiClient.Connect
     }
     /**
      * Detects and toggles immersive mode (also known as "hidey bar" mode).
+     * Not mine (From Google's tutorial)
      */
     public void toggleHideyBar() {
 
@@ -185,7 +210,7 @@ public class WebViewActivity extends Activity implements GoogleApiClient.Connect
         // Sticky immersive mode differs in that it makes the navigation and status bars
         // semi-transparent, and the UI flag does not get cleared when the user interacts with
         // the screen.
-        if (Build.VERSION.SDK_INT >= 18) {
+        if (Build.VERSION.SDK_INT >= 19) {
             newUiOptions ^= View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
         }
 
@@ -193,55 +218,165 @@ public class WebViewActivity extends Activity implements GoogleApiClient.Connect
     }
     @Override
     public boolean onKeyDown(int key, KeyEvent keyEvent) {
-        if(currentUrl.contains("https://accounts.google.com/ServiceLogin")) {
-            /*if(key == KeyEvent.ACTION_DOWN) {
-                eval("$('#choose-account-'+window.CURRENT+').css('background', '');" +
-                        "window.CURRENT++;" +
-                        "$('#choose-account-'+window.CURRENT+').css('background', 'red');");
-            } else if(key == KeyEvent.ACTION_UP) {
-                eval("$('#choose-account-'+window.CURRENT+').css('background', '');" +
-                        "window.CURRENT--;" +
-                        "$('#choose-account-'+window.CURRENT+').css('background', 'red');");
-            } else if(key == KeyEvent.KEYCODE_ENTER) {
-                eval("$('#choose-account-'+window.CURRENT+').click()");
-            }*/
-            if(key == KeyEvent.ACTION_DOWN) {
-                eval("window.INDEX++; " +
-                        "switch(window.INDEX) {" +
-                            "case 0:" +
-                            "$('#Email').focus();return;" +
-                            "case 1:" +
-                            "$('#Passwd').focus();return;" +
-                            "case 2:" +
-                            "$('#signIn').focus();return;" +
-                        "}");
-            } else if(key == KeyEvent.ACTION_UP) {
-                eval("window.INDEX--; " +
-                        "switch(window.INDEX) {" +
-                        "case 0:" +
-                        "$('#Email').focus();return;" +
-                        "case 1:" +
-                        "$('#Passwd').focus();return;" +
-                        "case 2:" +
-                        "$('#signIn').focus();return;" +
-                        "}");
-            } else if(key == KeyEvent.KEYCODE_ENTER) {
-                eval("switch(window.INDEX) {" +
-                        "case 0:" +
-                        "$('#Email').click();return;" +
-                        "case 1:" +
-                        "$('#Passwd').click();return;" +
-                        "case 2:" +
-                        "$('#signIn').click();return;" +
-                        "}");
-            }
-            return false;
-        } else if(currentUrl.contains("https://accounts.google.com/o/oauth2/")) {
-            if(key == KeyEvent.KEYCODE_ENTER) {
-                eval("$('#submit_approve_access').click()");
+        switch(key) {
+            case KeyEvent.KEYCODE_BUTTON_A:
+                eval("GamePad.pressKey(GamePad.KEYS.Enter)");
+                return true;
+            case KeyEvent.KEYCODE_BUTTON_Y:
+                eval("GamePad.pressKey(GamePad.KEYS.Spacebar)");
+                return true;
+            case KeyEvent.KEYCODE_BUTTON_B:
+                return false;
+            case KeyEvent.KEYCODE_BACK:
+                eval("GamePad.pressKey(GamePad.KEYS.Back)");
+                return false;
+        }
+
+        return super.onKeyDown(key, keyEvent);
+    }
+    @Override
+    public boolean onKeyUp(int key, KeyEvent keyEvent) {
+        switch(key) {
+            case KeyEvent.KEYCODE_BUTTON_A:
+                eval("GamePad.releaseKey(GamePad.KEYS.Enter");
+            case KeyEvent.KEYCODE_BUTTON_Y:
+                eval("GamePad.releaseKey(GamePad.KEYS.Spacebar");
+            case KeyEvent.KEYCODE_BACK:
+                eval("GamePad.releaseKey(GamePad.KEYS.Back)");
+                return false;
+        }
+
+        return super.onKeyUp(key, keyEvent);
+    }
+
+    //todo sfx
+    @Override /* To handle generic motion events like a joystick */
+    public boolean onGenericMotionEvent(MotionEvent m) {
+        Log.d(TAG, "Got GenericMotion "+m.getX()+", "+m.getY());
+        // Check if this event if from a D-pad and process accordingly.
+        if (Dpad.isDpadDevice(m)) {
+            Log.d(TAG, "Got Dpad Input");
+            int press = mDpad.getDirectionPressed(m);
+            int deviceId = m.getDeviceId();
+            Log.d(TAG, "From device "+deviceId+"; P"+mControllers.indexOfValue(getShipForID(deviceId)));
+            if(deviceId != -1) {
+                ControllerConnection cc = getShipForID(deviceId);
+                if(mControllers.indexOfValue(cc) == 0) {
+                    switch (press) {
+                        case Dpad.LEFT:
+                            // Do something for LEFT direction press
+                            eval("GamePad.pressKey(GamePad.KEYS.Left)");
+                            return true;
+                        case Dpad.RIGHT:
+                            // Do something for RIGHT direction press
+                            eval("GamePad.pressKey(GamePad.KEYS.Right)");
+                            return true;
+                        case Dpad.UP:
+                            // Do something for UP direction press
+                            eval("GamePad.pressKey(GamePad.KEYS.Up)");
+                            return true;
+                        case Dpad.DOWN:
+                            //Do something
+                            eval("GamePad.pressKey(GamePad.KEYS.Down)");
+                            return true;
+                        default:
+                            eval("GamePad.releaseKey(GamePad.KEYS.Left)");
+                            eval("GamePad.releaseKey(GamePad.KEYS.Right)");
+                            eval("GamePad.releaseKey(GamePad.KEYS.Up)");
+                            eval("GamePad.releaseKey(GamePad.KEYS.Down)");
+                            return true;
+                    }
+                } else if(mControllers.indexOfValue(cc) == 1) {
+                    switch (press) {
+                        case Dpad.LEFT:
+                            // Do something for LEFT direction press
+                            eval("GamePad.pressKey(GamePad.KEYS.A)");
+                            return true;
+                        case Dpad.RIGHT:
+                            // Do something for RIGHT direction press
+                            eval("GamePad.pressKey(GamePad.KEYS.D)");
+                            return true;
+                        case Dpad.UP:
+                            // Do something for UP direction press
+                            eval("GamePad.pressKey(GamePad.KEYS.W)");
+                            return true;
+                        case Dpad.DOWN:
+                            //Do something
+                            eval("GamePad.pressKey(GamePad.KEYS.S)");
+                            return true;
+                        default:
+                            eval("GamePad.releaseKey(GamePad.KEYS.W)");
+                            eval("GamePad.releaseKey(GamePad.KEYS.A)");
+                            eval("GamePad.releaseKey(GamePad.KEYS.S)");
+                            eval("GamePad.releaseKey(GamePad.KEYS.D)");
+                            return true;
+                    }
+                }
+            } else {
+                switch (press) {
+                    case Dpad.LEFT:
+                        // Do something for LEFT direction press
+                        eval("GamePad.pressKey(GamePad.KEYS.Left)");
+                        return true;
+                    case Dpad.RIGHT:
+                        // Do something for RIGHT direction press
+                        eval("GamePad.pressKey(GamePad.KEYS.Right)");
+                        return true;
+                    case Dpad.UP:
+                        // Do something for UP direction press
+                        eval("GamePad.pressKey(GamePad.KEYS.Up)");
+                        return true;
+                    case Dpad.DOWN:
+                        //Do something
+                        eval("GamePad.pressKey(GamePad.KEYS.Down)");
+                        return true;
+                    default:
+                        eval("GamePad.releaseKey(GamePad.KEYS.Left)");
+                        eval("GamePad.releaseKey(GamePad.KEYS.Right)");
+                        eval("GamePad.releaseKey(GamePad.KEYS.Up)");
+                        eval("GamePad.releaseKey(GamePad.KEYS.Down)");
+                        return true;
+                }
             }
         }
-        return super.onKeyDown(key, keyEvent);
+        // Check that the event came from a game controller
+        if (GamePad.isJoystickInput(m)) {
+            Log.d(TAG, "Got joystick input");
+            // Process all historical movement samples in the batch
+            final int historySize = m.getHistorySize();
+
+            // Process the movements starting from the
+            // earliest historical position in the batch
+            for (int i = 0; i < historySize; i++) {
+                // Process the event at historical position i
+                mGamePad.processJoystickInput(m, i);
+            }
+
+            // Process the current movement sample in the batch (position -1)
+            mGamePad.processJoystickInput(m, -1);
+            Log.d(TAG, "GamePad Input: "+mGamePad.getX()+" "+mGamePad.getY());
+            switch(mGamePad.getApproximateDirection()) {
+                case MovementDirection.UP:
+                    eval("GamePad.tapKey(GamePad.KEYS.Up)");
+                    return true;
+                case MovementDirection.DOWN:
+                    eval("GamePad.tapKey(GamePad.KEYS.Down)");
+                    return true;
+                case MovementDirection.LEFT:
+                    eval("GamePad.tapKey(GamePad.KEYS.Left)");
+                    return true;
+                case MovementDirection.RIGHT:
+                    eval("GamePad.tapKey(GamePad.KEYS.Right)");
+                    return true;
+                default:
+                    eval("GamePad.releaseKey(GamePad.KEYS.Left)");
+                    eval("GamePad.releaseKey(GamePad.KEYS.Right)");
+                    eval("GamePad.releaseKey(GamePad.KEYS.Up)");
+                    eval("GamePad.releaseKey(GamePad.KEYS.Down)");
+                    return true;
+            }
+        }
+        return super.onGenericMotionEvent(m);
     }
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
@@ -277,7 +412,7 @@ public class WebViewActivity extends Activity implements GoogleApiClient.Connect
      */
     public void eval(final String scriptSrc) {
         final View child = frame.getChildAt(frame.getChildCount() - 1);
-        Log.d(TAG, child.getPaddingTop()+"<<");
+        //Log.d(TAG, child.getPaddingTop()+"<<");
         child.post(new Runnable() {
             @Override
             public void run() {
@@ -322,6 +457,7 @@ public class WebViewActivity extends Activity implements GoogleApiClient.Connect
         /*if (mGoogleApiClient.isConnected()) {
             mGoogleApiClient.disconnect();
         }*/
+        eval("AudioPlayer.stopAllAudio()");
     }
     /**
      * Saves the resolution state.
@@ -679,13 +815,19 @@ public class WebViewActivity extends Activity implements GoogleApiClient.Connect
                             Iterator<Achievement> ia = ab.iterator();
                             while(ia.hasNext()) {
                                 Achievement ach = ia.next();
-                                AchievementArray.put(ach.getAchievementId(), new WebAchievement(ach.getAchievementId(), ach.getName(), ach.getDescription(),
-                                        ach.getType(), ach.getTotalSteps(), ach.getFormattedTotalSteps(), ach.getRevealedImageUrl(), ach.getUnlockedImageUrl(),
-                                        ach.getState(), ach.getXpValue(), ach.getCurrentSteps()));
+                                if(ach.getType() == ACHIEVEMENTS.INCREMENTAL)
+                                    AchievementArray.put(ach.getAchievementId(), new WebAchievement(ach.getAchievementId(), ach.getName(), ach.getDescription(),
+                                            ach.getType(), ach.getTotalSteps(), ach.getFormattedTotalSteps(), ach.getRevealedImageUrl(), ach.getUnlockedImageUrl(),
+                                            ach.getState(), ach.getXpValue(), ach.getCurrentSteps()));
+                                else
+                                    AchievementArray.put(ach.getAchievementId(), new WebAchievement(ach.getAchievementId(), ach.getName(), ach.getDescription(),
+                                            ach.getType(), 1, "1", ach.getRevealedImageUrl(), ach.getUnlockedImageUrl(),
+                                            ach.getState(), ach.getXpValue(), 0));
+                                WebAchievement a = AchievementArray.get(ach.getAchievementId());
                                 eval("var a = new Achievement();");
                                 //FIXME Int to String
-                                eval("a.setAchievementType('"+ach.getType()+"'.setDescription('"+ach.getDescription()+"').setId('"+ach.getAchievementId()
-                                        +"').setName('"+ach.getName()+"').setTotalSteps("+ach.getTotalSteps()+").setFormattedTotalSteps('"+ach.getFormattedTotalSteps()
+                                eval("a.setAchievementType('"+ach.getType()+"').setDescription('"+ach.getDescription()+"').setId('"+ach.getAchievementId()
+                                        +"').setName('"+ach.getName()+"').setTotalSteps("+a.getTotalSteps()+").setFormattedTotalSteps('"+a.getFormattedTotalSteps()
                                         +"').setRevealedIconUrl('"+ach.getRevealedImageUrl()+"').setUnlockedIconUrl('"+ach.getUnlockedImageUrl()+"').setInitialState('"+ach.getState()
                                         +"').setExperiencePoints("+ach.getXpValue()+")");
                                 eval("var n = a.getName().replace(/\\s/g, \"_\");\n" +
@@ -754,7 +896,7 @@ public class WebViewActivity extends Activity implements GoogleApiClient.Connect
                     p.setResultCallback(new ResultCallback<Achievements.UpdateAchievementResult>() {
                         @Override
                         public void onResult(Achievements.UpdateAchievementResult updateAchievementResult) {
-                            Log.d(TAG, achievement);
+                            Log.d(TAG, "You are unlocking "+achievement);
                             WebAchievement wa = AchievementArray.get(achievement);
                             Log.d(TAG, wa.toString());
                             int previous = wa.getState();
@@ -771,6 +913,17 @@ public class WebViewActivity extends Activity implements GoogleApiClient.Connect
                 }
             });
         }
+        @JavascriptInterface
+        public void launchAchievementsIntent() {
+            Log.d(TAG, "Opening Achievements");
+            Intent i = Games.Achievements.getAchievementsIntent(mGoogleApiClient);
+            startActivityForResult(i, 200);
+        }
+        @JavascriptInterface
+        public void launchLeaderboardsIntent() {
+            Intent i = Games.Leaderboards.getAllLeaderboardsIntent(mGoogleApiClient);
+            startActivityForResult(i, 200);
+        }
         //TODO Orientation locking on gamestart
 
         @JavascriptInterface
@@ -783,20 +936,9 @@ public class WebViewActivity extends Activity implements GoogleApiClient.Connect
             });
         }
 
-        /** Handle Auth Requests **/
-        public abstract class Auth {
-            @JavascriptInterface
-            public void SignIn() {
-                signIn();
-            }
-        }
-        public abstract class GPGLeaderboard {
-            @JavascriptInterface
-            public void getPlayerScore() {
-
-            }
-
-
+        @JavascriptInterface
+        public void exit() {
+            finish();
         }
     }
     public abstract static class IntentResults {
@@ -810,46 +952,44 @@ public class WebViewActivity extends Activity implements GoogleApiClient.Connect
             super();
         }
         @Override
-        public void onLoadResource(WebView v, String url) {
-            super.onLoadResource(v, url);
+        public void onLoadResource(WebView v, String u) {
+            Log.d(TAG, u+" "+url+"; "+u.equals(url));
+            Uri link = Uri.parse(u);
+            super.onLoadResource(v, u);
+            if(u.equals(url)) {
+            } else {
+                /*Intent i = new Intent(Intent.ACTION_VIEW);
+                i.setData(Uri.parse(u));
+                startActivity(i);*/
+            }
 //            Log.d(TAG, "Loading resource "+url);
 //            currentUrl = url;
         }
         public void onPageFinished(WebView v, String url) {
             super.onPageFinished(v, url);
             toggleHideyBar();
-            if(url.contains(".google.com")) {
-                Log.d(TAG, "Inject jQuery into "+url);
-                //Load jQuery
-                eval("console.log(0);" +
-                        "function loadScript(url)" +
-                        "{" +
-                        "    var head = document.getElementsByTagName('head')[0];" +
-                        "    var script = document.createElement('script');" +
-                        "    script.type = 'text/javascript';" +
-                        "    script.src = url;" +
-                        "    head.appendChild(script);" +
-                        "}" +
-                        "loadScript('https://code.jquery.com/jquery-2.1.3.min.js');" +
-                        "window.INDEX = 0;console.log(1);");
-                if(url.contains("accounts.google.com/ServiceLogin")) {
-                    Log.d(TAG, "Service Login");
-                    eval("console.log(window.INDEX);");
-                    eval("console.log($('body').text());");
-                    eval("$('#Email').focus();");
-                } else if(url.contains("accounts.google.com/o/oauth2/")) {
-                    eval("$('#submit_approve_access').focus()");
-                }
+            //Detect TV
+            UiModeManager uiModeManager = (UiModeManager) getSystemService(UI_MODE_SERVICE);
+            if (uiModeManager.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION) {
+                eval("GamePad.virtualPad = false;");
             }
         }
         @Override
-        public boolean shouldOverrideUrlLoading (WebView view, String url) {
-            view.loadUrl(url);
-            return true;
+        public boolean shouldOverrideUrlLoading (WebView view, String u) {
+            Log.d(TAG, u+" "+url+", "+u.equals(url));
+            if(u.equals(url)) {
+                view.loadUrl(u);
+                return true;
+            } else {
+                Intent i = new Intent(Intent.ACTION_VIEW);
+                i.setData(Uri.parse(u));
+                startActivity(i);
+                return false;
+            }
         }
     }
     final class MyChromeClient extends WebChromeClient {
-
+        //TODO STAHP LEAKING AUDIO, provide endpoints to call that
         // Add new webview in same window
         @Override
         public boolean onCreateWindow(WebView view, boolean dialog,
@@ -905,5 +1045,40 @@ public class WebViewActivity extends Activity implements GoogleApiClient.Connect
             return true;
         }
 
+    }
+
+    /** MULTIPLAYER **/
+    //This code is meant to track multiple controller inputs and map them correctly
+    public class ControllerConnection {
+        public ControllerConnection() {
+
+        }
+    }
+    private final SparseArray<ControllerConnection> mControllers = new SparseArray<ControllerConnection>();
+
+    @Override
+    public void onInputDeviceAdded(int deviceId) {
+        getShipForID(deviceId);
+    }
+
+    @Override
+    public void onInputDeviceChanged(int deviceId) {
+
+    }
+
+    @Override
+    public void onInputDeviceRemoved(int deviceId) {
+        removeShipForID(deviceId);
+    }
+    private ControllerConnection getShipForID(int shipID) {
+        ControllerConnection currentShip = mControllers.get(shipID);
+        if ( null == currentShip ) {
+            currentShip = new ControllerConnection();
+            mControllers.append(shipID, currentShip);
+        }
+        return currentShip;
+    }
+    private void removeShipForID(int shipID) {
+        mControllers.remove(shipID);
     }
 }

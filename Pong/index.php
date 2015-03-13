@@ -8,17 +8,36 @@
     <style>
         @import url(http://fonts.googleapis.com/css?family=Roboto);
     </style>
+    <style>
+        #mainMenu button {
+            width: 200px;
+            background-color: #fff;
+            border: solid 1px #333;
+            box-shadow: black 0px 0px 4px 0px;
+            margin: 16px;
+            height: 40px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            border-radius: 100px;
+            padding: 7px;   
+        }
+        button:focus {
+            box-shadow: blue 0px 0px 4px 0px;
+            outline: none;
+            color: blue;
+        }
+    </style>
 </head>
 <body class='fullbleed'>
     <div id='mainMenu' style="display:none;">
-        <button onclick="startGame(true)">Local Multiplayer</button>
-        <button onclick="startGame(false)">Play Computer</button>
-        <button onclick="displayLeaderboard()">Display Leaderboard</button>
-        <button onclick="displayAchievements()">Display Achievements</button>
+        <button onclick="startGame(true)" data-r="1" data-c="1">Local Multiplayer</button>
+        <button onclick="startGame(false)" data-r="1" data-c="2">Play Computer</button><br>
+        <button onclick="displayLeaderboard()" data-r="2" data-c="1">Display Leaderboard</button>
+        <button onclick="displayAchievements()" data-r="2" data-c="2">Display Achievements</button>
 <!--        <button onclick="hello('google').login();console.log('!');">G+</button>-->
-        <button id="authorize-button" style="visibility: hidden">Authorize</button>
     </div>
-    <div id='pauseMenu' style='display:none;position:fixed;'>
+    <button id="authorize-button" style="position:fixed;left:30%;top:40%;" data-r="2" data-c="3">Authorize</button>
+    <div id='pauseMenu' style='display:none;position:fixed;top:5%;left:5%;'>
         <button onclick='mainMenu()'>Main Menu</button>
     </div>
     <div id='fakeModalBox' style='position:fixed;display:none;top: 30%;Submitheight: 35%;left: 30%;width: 35%;border: solid 2px black;padding: 4px;box-shadow: rgba(0,0,0,.5) 0px 2px 15px 0px;'>
@@ -35,10 +54,18 @@
 function onConnected() {
     mainMenu();   
 }
+function onNeedAuth() {
+    $('#authorize-button').focus();   
+}
 function mainMenu() {
     Crafty.stop(true);
     document.getElementById('mainMenu').style.display = "block";
     document.getElementById('pauseMenu').style.display = "none";
+    inGame = false;
+    r = 1;
+    c = 1;
+    $('button[data-r="'+r+'"][data-c="'+c+'"]').focus();
+
 }
 function displayLeaderboard() {
     document.getElementById('fakeModalBox').style.display = "block";
@@ -78,6 +105,7 @@ function displayAchievements() {
 }
     
 function startGame(multiplayer) {
+    inGame = true;
     starttime = new Date().getTime();
     MAX_POINTS = 3; //Customize, also do time-based?
     document.getElementById('mainMenu').style.display = "none";
@@ -123,10 +151,9 @@ p1 = Crafty.e("Paddle, 2D, DOM, Color, Multiway, Object, Collision")
                 }
             })  
         } else {
-            console.log('Entered: ', keyspressed);
-            if(keyspressed['87'] !== undefined)
+            if(GamePad.isDown(GamePad.KEYS.W))
                 this.trigger('keypress-up');
-            if(keyspressed['83'] !== undefined)
+            if(GamePad.isDown(GamePad.KEYS.S))
                 this.trigger('keypress-down'); 
         }
     })
@@ -150,9 +177,9 @@ p2 = Crafty.e("Paddle, 2D, DOM, Color, Multiway, Object, Collision")
         this.y += Math.round(window.innerHeight/60);
     })
     .bind('EnterFrame', function() {
-        if(keyspressed['38'] !== undefined)
+        if(GamePad.isDown(GamePad.KEYS.Up))
             this.trigger('keypress-up');
-        if(keyspressed['40'] !== undefined)
+        if(GamePad.isDown(GamePad.KEYS.Down))
             this.trigger('keypress-down');
     })
     .enableControl()
@@ -288,5 +315,27 @@ function gameWon(plyr) {
 <script src='http://code.jquery.com/jquery-2.1.3.min.js'></script>
 <script src="game_auth_lib.js"></script>
 <script src="https://apis.google.com/js/client.js?onload=handleClientLoad"></script>
+<script>
+function onKeyDown(code) {
+    if(!inGame) {
+        switch(code) {
+            case 37:
+                c--;
+                break;
+            case 38: 
+                r--;
+                break;
+            case 39:
+                c++;
+                break;
+            case 40:
+                r++;
+                break;
+        }
+        console.log("Focus "+r+", "+c);
+        $('button[data-r="'+r+'"][data-c="'+c+'"]').focus();
+    }
+}
+</script>
 </body>
 </html>
