@@ -6,6 +6,7 @@
     <script src="https://github.com/craftyjs/Crafty/releases/download/0.6.3/crafty.js"></script>
     <style>
         @import url(http://fonts.googleapis.com/css?family=Roboto);
+        @import url(http://fonts.googleapis.com/css?family=Cutive+Mono);
     </style>
     <title>Epic Table Tennis</title>
 </head>
@@ -34,10 +35,10 @@
         }
         body {
             background-color: rgb(182, 205, 118);
-            font-family:monospace;
+            font-family:'Cutive Mono';
         }
         button, .snackbar {
-            font-family:monospace;
+            font-family:'Cutive Mono';
         }
         .snackbar {
               z-index: 100;
@@ -250,7 +251,7 @@ Crafty.e("Wall4, Wall, 2D, DOM, Color").attr({x:0,y:window.innerHeight,h:1, w:wi
 //Paddles
 p1 = Crafty.e("Paddle, 2D, DOM, Color, Multiway, Object, Collision")
     .color('rgb(204,10,11)')
-    .attr({ x: 20, y: window.innerHeight/2, w: 10, h: window.innerHeight/6, speed_mod: 1, paddleid:1, cpu: !multiplayer, difficulty: 160}) /*difficulty: lower is better */
+    .attr({ x: 20, y: window.innerHeight/2, w: 10, h: window.innerHeight/6, speed_mod: 1, paddleid:1, cpu: !multiplayer, difficulty: 120}) /*difficulty: lower is better */
     .multiway(Math.round(window.innerHeight/60), { W: -90, S: 90 })
     .onHit('Wall3', function() {
         this.y = 0;
@@ -270,7 +271,7 @@ p1 = Crafty.e("Paddle, 2D, DOM, Color, Multiway, Object, Collision")
            var cpu = this;
             Crafty("Ball").each(function() {
                 var h = this.y;
-                if(y > h && this.x < window.innerWidth/2)
+                if(y >= h && this.x < window.innerWidth/2)
                     cpu.y -= window.innerHeight/cpu.difficulty/*-Crafty.math.randomInt(15,30)/cpu.difficulty*/;
                 else if(this.x < window.innerWidth/2)
                     cpu.y += window.innerHeight/cpu.difficulty/*-Crafty.math.randomInt(15,30)/cpu.difficulty*/;
@@ -364,7 +365,7 @@ p1.bind('EnterFrame', function() {
 Crafty.e("LeftPoints, DOM, 2D, Text")
     .attr({ x: 80, y: 20, w: 100, h: 20, points: 0 })
     .text("0 ")
-    .textFont({family:'Courier New', size:"16pt"})
+    .textFont({family:'Cutive Mono', size:"16pt"})
     .bind('Invalidate', function() {
         //Check score
 //        console.log(this.points);
@@ -374,7 +375,7 @@ Crafty.e("LeftPoints, DOM, 2D, Text")
 Crafty.e("RightPoints, DOM, 2D, Text")
     .attr({ x: window.innerWidth-100, y: 20, w: 100, h: 20, points: 0 })
     .text("0 ")
-    .textFont({family:'Courier New', size:"16pt"})
+    .textFont({family:'Cutive Mono', size:"16pt"})
     .bind('Invalidate', function() {
         //Check score
 //        console.log(this.points);
@@ -385,12 +386,12 @@ Crafty.e("RightPoints, DOM, 2D, Text")
     Crafty.pause(true);
     
     if(multiplayer) {
-        whois_p1 = Crafty.e("2D, DOM, Text, Whois").attr({ x: 20, y: 60 }).text("P1 (User)").textFont({family:'Courier New', size:"24pt"});   
+        whois_p1 = Crafty.e("2D, DOM, Text, Whois").attr({ x: 20, y: 60 }).text("P1 (User)").textFont({family:'Cutive Mono', size:"24pt"});   
     } else {     
-        whois_p1 = Crafty.e("2D, DOM, Text, Whois").attr({ x: 20, y: 60 }).text("CPU").textFont({family:'Courier New', size:"24pt"});   
+        whois_p1 = Crafty.e("2D, DOM, Text, Whois").attr({ x: 20, y: 60 }).text("CPU").textFont({family:'Cutive Mono', size:"24pt"});   
     }
-    whois_p2 = Crafty.e("2D, DOM, Text").attr({ x: window.innerWidth-160, y: 60 }).text("P2 (You)").textFont({family:'Courier New', size:"24pt"});    
-    whois_countdown = Crafty.e("2D, DOM, Text, Countdown").attr({x: window.innerWidth/2-20, y: window.innerHeight/2 - 20}).text("3").textFont({family:'Courier New', size:"24pt"});
+    whois_p2 = Crafty.e("2D, DOM, Text").attr({ x: window.innerWidth-160, y: 60 }).text("P2 (You)").textFont({family:'Cutive Mono', size:"24pt"});    
+    whois_countdown = Crafty.e("2D, DOM, Text, Countdown").attr({x: window.innerWidth/2-20, y: window.innerHeight/2 - 20}).text("3").textFont({family:'Cutive Mono', size:"24pt"});
     setTimeout(function() {
         Crafty.pause(false);
         Crafty("Countdown").each(function() { this.text('2');})
@@ -455,13 +456,15 @@ function gameWon(plyr) {
 <script>
 MusicPlayer.initPlaylist('battle.ogg', 'battle.ogg');
 //Splashes.setScreens([]);
-function onKeyDown(code) {
+function onKeyTap(code) {
+    console.log("Tapped code");
     if(menus.current() == MENUS.MAIN) {
         switch(code) {
             case 37:
                 menus.c--;
                 break;
             case 38: 
+                GamePad.release
                 menus.r--;
                 break;
             case 39:
@@ -481,6 +484,10 @@ function onKeyDown(code) {
             menus.r = 0;
         console.log("Focus "+menus.r+", "+menus.c);
         $('button[data-r="'+menus.r+'"][data-c="'+menus.c+'"]').focus();
+        GamePad.releaseKey(GamePad.KEYS.Left)
+        GamePad.releaseKey(GamePad.KEYS.Right)
+        GamePad.releaseKey(GamePad.KEYS.Up)
+        GamePad.releaseKey(GamePad.KEYS.Down)
     }
     if(menus.current() == MENUS.PAUSE) {
         switch(code) {

@@ -597,6 +597,7 @@ function VirtualGamepad() {
         }, 1000/30, this, key); /* A frame */
     }
     this.keyspressed = {};
+    this.keystapped = {};
     this.keyhistory = [];
     this.HISTORY_LENGTH = 5;
     this.isDown = function(key) {
@@ -669,15 +670,35 @@ GamePad = new VirtualGamepad();
 
 $(document).on('keydown', function(e) {
     console.log(e);
+    
+    try {
+        if(e.ctrlKey !== undefined && !GamePad.isDown(new Key(e.which, e.ctrlKey, e.shiftKey, e.metaKey)))
+            onKeyTap(e.which);   
+        else if(e.ctrlKey === undefined && !GamePad.isDown(new Key(e.which, e.ctrl, e.shift, e.meta)))
+            onKeyTap(e.which);   
+            
+        setTimeout(function() {
+            if(e.ctrlKey !== undefined) {
+                delete GamePad.keystapped[e.which+"_"+e.ctrlKey+"_"+e.shiftKey+"_"+e.metaKey];
+            } else {
+                delete GamePad.keystapped[e.which+"_"+e.ctrl+"_"+e.shift+"_"+e.meta];
+            }
+        }, 50);
+    } catch(er) {console.error(er.message);}
+    
     if(e.ctrlKey !== undefined) //So there's two ways of doing this. I don't know why. It's stupid.
         GamePad.keyspressed[e.which+"_"+e.ctrlKey+"_"+e.shiftKey+"_"+e.metaKey] = true;
     else
         GamePad.keyspressed[e.which+"_"+e.ctrl+"_"+e.shift+"_"+e.meta] = true;
+    
+    if(e.ctrlKey !== undefined) //So there's two ways of doing this. I don't know why. It's stupid.
+        GamePad.keystapped[e.which+"_"+e.ctrlKey+"_"+e.shiftKey+"_"+e.metaKey] = true;
+    else
+        GamePad.keystapped[e.which+"_"+e.ctrl+"_"+e.shift+"_"+e.meta] = true;
+    
     try {
         onKeyDown(e.which);   
-    } catch(e) {
-        
-    }
+    } catch(er) {}
     
     //Back key activates the Pause if ingame
     if(GamePad.isDown(GamePad.KEYS.Back)) {
@@ -696,10 +717,13 @@ $(document).on('keydown', function(e) {
 //    return false;
 });
 $(document).on('keyup', function(e) {
-    if(e.ctrlKey !== undefined) 
+    if(e.ctrlKey !== undefined) {
         delete GamePad.keyspressed[e.which+"_"+e.ctrlKey+"_"+e.shiftKey+"_"+e.metaKey];
-    else
+        delete GamePad.keystapped[e.which+"_"+e.ctrlKey+"_"+e.shiftKey+"_"+e.metaKey];
+    } else {
         delete GamePad.keyspressed[e.which+"_"+e.ctrl+"_"+e.shift+"_"+e.meta];
+        delete GamePad.keystapped[e.which+"_"+e.ctrl+"_"+e.shift+"_"+e.meta];
+    }
     
     GamePad.keyhistory.push(e.which+"_"+e.ctrlKey+"_"+e.shiftKey+"_"+e.metaKey);
     if(GamePad.keyhistory.length > GamePad.HISTORY_LENGTH)
@@ -893,6 +917,13 @@ function AudioManager() {
                     s.stop();
             }
         }, 50);//because loop music will play if just one is called
+        setTimeout(function() {
+            for(i in AudioPlayer.playing) {
+                var s = AudioPlayer.playing[i];   
+                if(s !== undefined)
+                    s.stop();
+            }
+        }, 100);//because loop music will play if just two are called
     }
 }
 function MusicManager() {

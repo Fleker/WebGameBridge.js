@@ -16,8 +16,8 @@ android {
         applicationId "com.felkertech.n.myapplication"
         minSdkVersion 16
         targetSdkVersion 21
-        versionCode 4
-        versionName "1.0-r3"
+        versionCode 5
+        versionName "1.0-r4"
     }
     buildTypes {
         release {
@@ -30,9 +30,14 @@ android {
         }
     }
 }
-
+repositories {
+    maven {
+        url "http://maven.ouya.tv/"
+    }
+}
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.android.support:appcompat-v7:21.0.3'
     compile 'com.google.android.gms:play-services:6.5.87'
+    compile 'ouya:ouya-sdk:+'
 }
