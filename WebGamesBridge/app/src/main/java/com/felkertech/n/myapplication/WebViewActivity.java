@@ -7,16 +7,12 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Build;
-import android.os.Handler;
+import android.os.Bundle;
 import android.os.Message;
 import android.support.annotation.NonNull;
-import android.os.Bundle;
 import android.util.Log;
 import android.util.SparseArray;
-import android.view.InputDevice;
 import android.view.KeyEvent;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -31,12 +27,11 @@ import android.widget.Toast;
 
 import com.example.inputmanagercompat.InputManagerCompat;
 import com.felkertech.n.myapplication.Utils.MovementDirection;
+import com.felkertech.n.queuify.R;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
-import com.google.android.gms.common.api.Result;
 import com.google.android.gms.common.api.ResultCallback;
-import com.google.android.gms.common.api.Status;
 import com.google.android.gms.games.Games;
 import com.google.android.gms.games.GamesStatusCodes;
 import com.google.android.gms.games.achievement.Achievement;
@@ -49,8 +44,13 @@ import com.google.android.gms.games.leaderboard.LeaderboardScoreBuffer;
 import com.google.android.gms.games.leaderboard.Leaderboards;
 import com.google.android.gms.games.leaderboard.ScoreSubmissionData;
 import com.google.android.gms.plus.Plus;
+import com.google.android.gms.plus.model.people.Person;
 import com.google.example.games.basegameutils.BaseGameUtils;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 
@@ -218,8 +218,15 @@ public class WebViewActivity extends Activity implements GoogleApiClient.Connect
     }
     @Override
     public boolean onKeyDown(int key, KeyEvent keyEvent) {
+        Log.d(TAG, "Tapped "+key);
         switch(key) {
             case KeyEvent.KEYCODE_BUTTON_A:
+                eval("GamePad.pressKey(GamePad.KEYS.Enter)");
+                return true;
+            case KeyEvent.KEYCODE_ENTER:
+                eval("GamePad.pressKey(GamePad.KEYS.Enter)");
+                return true;
+            case KeyEvent.KEYCODE_DPAD_CENTER:
                 eval("GamePad.pressKey(GamePad.KEYS.Enter)");
                 return true;
             case KeyEvent.KEYCODE_BUTTON_Y:
@@ -227,23 +234,77 @@ public class WebViewActivity extends Activity implements GoogleApiClient.Connect
                 return true;
             case KeyEvent.KEYCODE_BUTTON_B:
                 return false;
+            case KeyEvent.KEYCODE_DPAD_UP:
+                eval("GamePad.pressKey(GamePad.KEYS.Up)");
+                return true;
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+                eval("GamePad.pressKey(GamePad.KEYS.Down)");
+                return true;
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+                eval("GamePad.pressKey(GamePad.KEYS.Left)");
+                return true;
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+                eval("GamePad.pressKey(GamePad.KEYS.Right)");
+                return true;
+            case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
+                eval("GamePad.pressKey(GamePad.KEYS.Play_Pause)");
+                return true;
+            /*case KeyEvent.KEYCODE_MEDIA_PLAY:
+                eval("GamePad.pressKey(GamePad.KEYS.Play_Pause)");
+                return true;*/
             case KeyEvent.KEYCODE_BACK:
-                eval("GamePad.pressKey(GamePad.KEYS.Back)");
-                return false;
+                Log.d(TAG, "Pressed KEYCODE_BACK");
+                eval("GamePad.tapKey(GamePad.KEYS.Back)");
+//                return false;
+//                return true;
         }
 
         return super.onKeyDown(key, keyEvent);
     }
     @Override
+    public void onBackPressed() {
+//        moveTaskToBack(true);
+        Log.d(TAG, "Prssed back");
+        eval("GamePad.pressKey(GamePad.KEYS.Back)");
+//        return;
+    }
+    @Override
     public boolean onKeyUp(int key, KeyEvent keyEvent) {
+        Log.d(TAG, "Keypup "+key);
         switch(key) {
             case KeyEvent.KEYCODE_BUTTON_A:
                 eval("GamePad.releaseKey(GamePad.KEYS.Enter");
+                return true;
+            case KeyEvent.KEYCODE_ENTER:
+                eval("GamePad.releaseKey(GamePad.KEYS.Enter)");
+                return true;
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+                eval("GamePad.releaseKey(GamePad.KEYS.Enter)");
+                return true;
             case KeyEvent.KEYCODE_BUTTON_Y:
                 eval("GamePad.releaseKey(GamePad.KEYS.Spacebar");
+                return true;
             case KeyEvent.KEYCODE_BACK:
                 eval("GamePad.releaseKey(GamePad.KEYS.Back)");
                 return false;
+            case KeyEvent.KEYCODE_DPAD_UP:
+                eval("GamePad.releaseKey(GamePad.KEYS.Up)");
+                return true;
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+                eval("GamePad.releaseKey(GamePad.KEYS.Down)");
+                return true;
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+                eval("GamePad.releaseKey(GamePad.KEYS.Left)");
+                return true;
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+                eval("GamePad.releaseKey(GamePad.KEYS.Right)");
+                return true;
+            case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
+                eval("GamePad.releaseKey(GamePad.KEYS.Play_Pause)");
+                return true;
+            /*case KeyEvent.KEYCODE_MEDIA_PLAY:
+                eval("GamePad.releaseKey(GamePad.KEYS.Play_Pause)");
+                return true;*/
         }
 
         return super.onKeyUp(key, keyEvent);
@@ -420,7 +481,7 @@ public class WebViewActivity extends Activity implements GoogleApiClient.Connect
                     Log.d(TAG, "Execute " + scriptSrc);
                 else
                     Log.d(TAG, "Execute " + scriptSrc.substring(0, 49));
-                ((WebView) child).loadUrl("javascript:try { " + scriptSrc+"} catch(error) { Android.onError(error.message) }");
+                ((WebView) child).loadUrl("javascript:try { " + scriptSrc + "} catch(error) { Android.onError(error.message) }");
 //                ((WebView) child).loadUrl("javascript:console.log(1)");
 //                body.loadUrl("javascript:console.log(2)");
                 ///*(function() {*/  /*)()*/
@@ -457,6 +518,7 @@ public class WebViewActivity extends Activity implements GoogleApiClient.Connect
         /*if (mGoogleApiClient.isConnected()) {
             mGoogleApiClient.disconnect();
         }*/
+        Log.d(TAG, "Killing app(?)");
         eval("AudioPlayer.stopAllAudio()");
     }
     /**
@@ -507,28 +569,6 @@ public class WebViewActivity extends Activity implements GoogleApiClient.Connect
         Games.signOut(mGoogleApiClient);
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_web_view, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
     /**
      * Called when {@code mGoogleApiClient} is connected.
      */
@@ -538,6 +578,38 @@ public class WebViewActivity extends Activity implements GoogleApiClient.Connect
         // TODO: Start making API requests.
         eval("makeApiCall();");
         // (your code here: update UI, enable functionality that depends on sign in, etc)
+        if (Plus.PeopleApi.getCurrentPerson(mGoogleApiClient) != null) {
+            Person currentPerson = Plus.PeopleApi.getCurrentPerson(mGoogleApiClient);
+            String userid = currentPerson.getId();
+            JSONObject user = new JSONObject();
+            JSONObject name = new JSONObject();
+            try {
+                name.put("givenName", currentPerson.getName().getGivenName());
+                user.put("id", userid);
+                user.put("name", name);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            Log.d(TAG, user.toString());
+            eval("onGetUserInfo(" + user.toString() + ")");
+        }
+    }
+    public JSONObject getUserInfo() {
+        if (Plus.PeopleApi.getCurrentPerson(mGoogleApiClient) != null) {
+            Person currentPerson = Plus.PeopleApi.getCurrentPerson(mGoogleApiClient);
+            String userid = currentPerson.getId();
+            JSONObject user = new JSONObject();
+            JSONObject name = new JSONObject();
+            try {
+                name.put("givenName", currentPerson.getName().getGivenName());
+                user.put("id", userid);
+                user.put("name", name);
+                return user;
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
     }
 
     /**
@@ -558,6 +630,7 @@ public class WebViewActivity extends Activity implements GoogleApiClient.Connect
      */
     @Override
     public void onConnectionFailed(ConnectionResult result) {
+        Log.d(TAG, "Error connecting: "+result.getErrorCode());
         if (mResolvingConnectionFailure) {
             // already resolving
             return;
@@ -638,10 +711,13 @@ public class WebViewActivity extends Activity implements GoogleApiClient.Connect
         }
         @JavascriptInterface
         public void GooglePlayGamesConnect() {
-            GPGLeaderboard_refresh();
+            if(Arrays.asList(APIs).contains("Games"))
+                GPGLeaderboard_refresh();
         }
         @JavascriptInterface
         public void GPGLeaderboard_refresh() {
+            if(!Arrays.asList(APIs).contains("Games"))
+                return;
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -743,6 +819,8 @@ public class WebViewActivity extends Activity implements GoogleApiClient.Connect
 
         @JavascriptInterface
         public void GPGAchievement_refresh() {
+            if(!Arrays.asList(APIs).contains("Games"))
+                return;
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -940,6 +1018,18 @@ public class WebViewActivity extends Activity implements GoogleApiClient.Connect
         public void exit() {
             finish();
         }
+
+        @JavascriptInterface
+        public void runCustomCode(String json_action) {
+            try {
+                onCustomAction(new JSONObject(json_action));
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+    public void onCustomAction(JSONObject js) throws JSONException {
+        // MEANT TO BE OVERRIDEN
     }
     public abstract static class IntentResults {
         public abstract static class Leaderboards {

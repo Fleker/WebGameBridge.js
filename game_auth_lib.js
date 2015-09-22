@@ -2,9 +2,21 @@
 //Add head params
 var h = document.head;
 var h_html = h.innerHTML;
-h_html += '<meta name="google-signin-clientid" content="'+clientId+'" />';
+try {
+    if(clientId !== undefined)
+        h_html += '<meta name="google-signin-clientid" content="'+clientId+'" />';
+    else
+        clientId = "";
+} catch(e) {
+    clientId = "";   
+}
 h_html += ' <meta name="google-signin-cookiepolicy" content="single_host_origin" /><meta name="google-signin-callback" content="signinCallback" />';
-h_html += '<meta name="google-signin-scope" content="'+scopes+'" />';
+try {
+if(scopes !== undefined)
+    h_html += '<meta name="google-signin-scope" content="'+scopes+'" />';
+} catch(e) {
+    scopes = "";
+}
 h.innerHTML = h_html;
 //Add Body Load
 //document.body.innerHTML += '<script src="https://apis.google.com/js/client.js?onload=handleClientLoad"></script>';
@@ -18,11 +30,11 @@ document.head.innerHTML += "<style> .fullbleed { width:100%;height:100%;position
 document.head.innerHTML += "<style> .virtual-key { display:none; }</style>";
 
 GPGJS = {
-    VERSION: "0.9.2.2",
-    BUILD: 5,
+    VERSION: "0.9.3.1",
+    BUILD: 6,
     AUTHOR: "Nick Felker @HandNF"
 };
-console.info("Using GPG.JS version "+GPGJS.VERSION);
+console.info("Using WGB.JS version "+GPGJS.VERSION);
 
 //GETTERS
 GET = {};
@@ -43,8 +55,13 @@ ANDROID = urlHas("android");
 function handleClientLoad() {
 // Step 2: Reference the API key
     if(!ANDROID) {
-        gapi.client.setApiKey(apiKey);
-        window.setTimeout(checkAuth,1);
+        try {
+            gapi.client.setApiKey(apiKey);
+            window.setTimeout(checkAuth,1);
+        } catch(e) {
+            //Something
+            apiKey = "";
+        }
     } else {
         Android.Auth_SignIn();
     }
@@ -147,14 +164,28 @@ function handleAuthClick(event) {
 function makeApiCall() {
   console.log("HEY - YOU ARE CONNECTED! :D");
     if(!ANDROID) {
-      GooglePlayGamesConnect();
-      try {
-        onConnected();      
-      } catch(e) {
-        console.warn("Use the onConnected event to start the game after a successful connection");   
-      }
+        GooglePlayGamesConnect();
+        try {
+            onConnected();      
+        } catch(e) {
+            console.warn("Use the onConnected event to start the game after a successful connection");   
+        }
+        gapi.client.load('plus','v1', function() {
+                var request = gapi.client.plus.people.get({
+                'userId': 'me'
+            });
+            request.execute(function(resp) {
+                console.log('Retrieved profile for:' + resp.displayName);
+                try {
+                    onGetUserInfo(resp);
+                } catch(e) {
+                    
+                }
+            });
+        });
     } else {
-        Android.GooglePlayGamesConnect();
+        if(scopes.indexOf("game") > -1)
+            Android.GooglePlayGamesConnect();
        try {
         onConnected();      
       } catch(e) {
@@ -377,7 +408,8 @@ function AchievementRequest() {
             });  
         };
     } else if(ANDROID) {
-        Android.GPGAchievement_refresh();   
+        if(scopes.indexOf("game") > -1)
+            Android.GPGAchievement_refresh();   
     }
     
     this.increment = function(achievement, steps, callbackfnc /* with params currSteps & newly unlocked */) {
@@ -569,7 +601,8 @@ function VirtualGamepad() {
         Up: new Key(38),
         Right: new Key(39),
         Down: new Key(40),
-        Back: new Key(27)
+        Back: new Key(27),
+        Play_Pause: new Key(179)
     };
     this.pressKey = function(key) {
         var e = $.Event('keydown');
@@ -614,6 +647,8 @@ function VirtualGamepad() {
         }
     }
     this.wasDone = function(keyList) {
+        if(keyList.key !== undefined)
+            keyList = [keyList]; //Turn into an array
         //An array of keys that needed to be pressed in an exact order to elicit a response
         var down = true;
         var index = parseInt(this.keyhistory.length - keyList.length);
@@ -702,17 +737,18 @@ $(document).on('keydown', function(e) {
     
     //Back key activates the Pause if ingame
     if(GamePad.isDown(GamePad.KEYS.Back)) {
-        console.log("Back button pressed");
+        console.log("Back button pressed "+menus.current()+" "+menus.currMenu);
         if(menus.current() == MENUS.GAME) { //Pause if ingame
             menus.open(MENUS.PAUSE);
         } else if(menus.current() == MENUS.PAUSE || menus.current() == MENUS.ACHIEVEMENTS || menus.current() == MENUS.LEADERBOARD) { //Go to main menu
             menus.open(MENUS.MAIN);
         } else if(menus.current() == MENUS.MAIN) { //Exit app if on Android
+            console.log("Exit app if on Android");
             if(ANDROID)
                 Android.exit();
         }
     } else {
-        console.log("Button pressed is "+e.which+", not back");   
+//        console.log("Button pressed is "+e.which+", not back");   
     }
 //    return false;
 });
