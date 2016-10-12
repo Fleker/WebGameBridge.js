@@ -27,7 +27,6 @@ import android.widget.Toast;
 
 import com.example.inputmanagercompat.InputManagerCompat;
 import com.felkertech.n.myapplication.Utils.MovementDirection;
-import com.felkertech.n.queuify.R;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;

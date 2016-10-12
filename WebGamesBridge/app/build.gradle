@@ -2,32 +2,31 @@ apply plugin: 'com.android.application'
 
 android {
     signingConfigs {
-        config {
-            keyAlias 'nick'
-            keyPassword 'P@55w0rdB@tt3ryST@P13'
-            storeFile file('C:/Users/N/Documents/GitHub/ks.jks')
-            storePassword 'GitSansGlut33'
-        }
+
     }
-    compileSdkVersion 21
-    buildToolsVersion "21.1.2"
+    compileSdkVersion 24
+    buildToolsVersion "24.0.0"
 
     defaultConfig {
         applicationId "com.felkertech.n.myapplication"
         minSdkVersion 16
-        targetSdkVersion 21
+        targetSdkVersion 24
         versionCode 5
-        versionName "1.0-r4"
+        versionName "1.0-r5"
     }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.config
+
         }
         debug {
-            signingConfig signingConfigs.config
+
         }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
     }
 }
 repositories {
@@ -36,8 +35,11 @@ repositories {
     }
 }
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.android.support:appcompat-v7:21.0.3'
-    compile 'com.google.android.gms:play-services:6.5.87'
-    compile 'ouya:ouya-sdk:+'
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+    compile 'com.android.support:appcompat-v7:24.2.1'
+    compile 'ouya:ouya-sdk:2.0.1'
+
+    compile 'com.google.android.gms:play-services-plus:9.4.0'
+    compile 'com.google.android.gms:play-services-auth:9.4.0'
+    compile 'com.google.android.gms:play-services-games:9.4.0'
 }
